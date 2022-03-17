@@ -158,6 +158,24 @@ def cc_new_unique(
         CCache: The created credential cache.
     """
 
+def cc_remove_cred(
+    context: Context,
+    cache: CCache,
+    flags: typing.Union[int, CredentialsRetrieveFlags],
+    creds: Creds,
+) -> None:
+    """Remove matching credentials from a credential cache.
+
+    Remove all credential which match creds according to flags from the
+    credential cache.
+
+    Args:
+        context: Krb5 context.
+        cache: The credential cache to store the creds into.
+        flags: The flags describing how to perform the matching.
+        creds: The credentials to match against.
+    """
+
 def cc_resolve(
     context: Context,
     name: bytes,
@@ -175,6 +193,27 @@ def cc_resolve(
 
     Returns:
         CCache: The credential cache that was resolved.
+    """
+
+def cc_retrieve_cred(
+    context: Context,
+    cache: CCache,
+    flags: typing.Union[int, CredentialsRetrieveFlags],
+    mcreds: Creds,
+) -> Creds:
+    """Retrieve matching credentials from a credential cache.
+
+    Retrieve all credential which match creds according to flags from the
+    credential cache.
+
+    Args:
+        context: Krb5 context.
+        cache: The credential cache to store the creds into.
+        flags: The flags describing how to perform the matching.
+        mcreds: The credentials to match against.
+
+    Returns:
+        Creds: The matching credentials.
     """
 
 def cc_set_default_name(
