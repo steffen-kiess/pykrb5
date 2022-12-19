@@ -8,12 +8,82 @@ from krb5._exceptions import Krb5Error
 
 from krb5._context cimport Context
 from krb5._creds_opt cimport GetInitCredsOpt
+from krb5._keyblock cimport KeyBlock
 from krb5._krb5_types cimport *
 from krb5._kt cimport KeyTab
 from krb5._principal cimport Principal
 
 
 cdef extern from "python_krb5.h":
+    """
+    void pykrb5_creds_get(
+        krb5_creds *creds,
+        krb5_principal *client,
+        krb5_principal *server,
+        krb5_keyblock **keyblock,
+        pykrb5_ticket_times *times,
+        uint32_t *ticket_flags,
+        // krb5_address ***addresses,
+        krb5_data *ticket,
+        krb5_data *second_ticket
+        // krb5_authdata ***authdata,
+    )
+    {
+        if (client != NULL) *client = creds->client;
+        if (server != NULL) *server = creds->server;
+#if defined(HEIMDAL_XFREE)
+        if (keyblock != NULL) *keyblock = &creds->session;
+#else
+        if (keyblock != NULL) *keyblock = &creds->keyblock;
+#endif
+        if (times != NULL) *times = creds->times;
+#if defined(HEIMDAL_XFREE)
+        if (ticket_flags != NULL) *ticket_flags = creds->flags.i;
+#else
+        if (ticket_flags != NULL) *ticket_flags = creds->ticket_flags;
+#endif
+        // if (addresses != NULL) *addresses = creds->addresses;
+        if (ticket != NULL) *ticket = creds->ticket;
+        if (second_ticket != NULL) *second_ticket = creds->second_ticket;
+        // if (authdata != NULL) *authdata = creds->authdata;
+    }
+
+    void pykrb5_ticket_times_get(
+        pykrb5_ticket_times *times,
+        krb5_timestamp *authtime,
+        krb5_timestamp *starttime,
+        krb5_timestamp *endtime,
+        krb5_timestamp *renew_till
+    )
+    {
+        if (authtime) *authtime = times->authtime;
+        if (starttime) *starttime = times->starttime;
+        if (endtime) *endtime = times->endtime;
+        if (renew_till) *renew_till = times->renew_till;
+    }
+    """
+
+    void pykrb5_creds_get(
+        krb5_creds *creds,
+        krb5_principal *client,
+        krb5_principal *server,
+        krb5_keyblock **keyblock,
+        pykrb5_ticket_times *times,
+        uint32_t *ticket_flags,
+        # krb5_address ***addresses,
+        krb5_data *ticket,
+        krb5_data *second_ticket,
+        # krb5_authdata ***authdata,
+    ) nogil
+
+    void pykrb5_ticket_times_get(
+        pykrb5_ticket_times *times,
+        krb5_timestamp *authtime,
+        krb5_timestamp *starttime,
+        krb5_timestamp *endtime,
+        krb5_timestamp *renew_till
+    ) nogil
+
     void krb5_free_cred_contents(
         krb5_context context,
         krb5_creds *val,
@@ -97,6 +167,68 @@ cdef class Creds:
     def __str__(Creds self) -> str:
         return "Creds"
 
+    @property
+    def client(Creds self) -> Principal:
+        princ = Principal(self.ctx, 0, needs_free=0)
+        pykrb5_creds_get(&self.raw, &princ.raw, NULL, NULL, NULL, NULL, NULL, NULL)
+
+        return princ
+
+    @property
+    def server(Creds self) -> Principal:
+        princ = Principal(self.ctx, 0, needs_free=0)
+        pykrb5_creds_get(&self.raw, NULL, &princ.raw, NULL, NULL, NULL, NULL, NULL)
+
+        return princ
+
+    @property
+    def keyblock(Creds self) -> KeyBlock:
+        kb = KeyBlock(self.ctx, needs_free=0)
+        pykrb5_creds_get(&self.raw, NULL, NULL, &kb.raw, NULL, NULL, NULL, NULL)
+
+        return kb
+
+    @property
+    def times(Creds self) -> int:
+        times = TicketTimes()
+        pykrb5_creds_get(&self.raw, NULL, NULL, NULL, &times.raw, NULL, NULL, NULL)
+
+        return times
+
+    # @property
+    # def ticket_flags(Creds self) -> int:
+    #     cdef uint32_t flags
+    #     pykrb5_creds_get(&self.raw, NULL, NULL, NULL, NULL, &flags, NULL, NULL)
+
+    #     return flags
+
+    @property
+    def ticket(Creds self) -> bytes:
+        cdef krb5_data ticket
+        pykrb5_creds_get(&self.raw, NULL, NULL, NULL, NULL, NULL, &ticket, NULL)
+
+        cdef size_t length
+        cdef char *value
+        pykrb5_get_krb5_data(&ticket, &length, &value)
+
+        if length == 0:
+            return b""
+        else:
+            return value[:length]
+
+    @property
+    def second_ticket(Creds self) -> bytes:
+        cdef krb5_data second_ticket
+        pykrb5_creds_get(&self.raw, NULL, NULL, NULL, NULL, NULL, NULL, &second_ticket)
+
+        cdef size_t length
+        cdef char *value
+        pykrb5_get_krb5_data(&second_ticket, &length, &value)
+
+        if length == 0:
+            return b""
+        else:
+            return value[:length]
 
 cdef class InitCredsContext:
     # cdef Context ctx
@@ -130,6 +262,22 @@ cdef class Krb5Prompt:
         hidden: bool,
     ) -> bytes:
         raise NotImplementedError()
+
+
+cdef class TicketTimes:
+    # cdef pykrb5_ticket_times raw
+
+    def __str__(InitCredsContext self) -> str:
+        cdef krb5_timestamp authtime,
+        cdef krb5_timestamp starttime,
+        cdef krb5_timestamp endtime,
+        cdef krb5_timestamp renew_till
+        pykrb5_ticket_times_get(&self.raw, &authtime, &starttime, &endtime, &renew_till)
+
+        return f"(authtime={authtime}, starttime={starttime}, endtime={endtime}, renew_till={renew_till})"
+
+    def __repr__(InitCredsContext self) -> str:
+        return "TicketTimes" + str(self)
 
 
 cdef krb5_error_code prompt_callback(

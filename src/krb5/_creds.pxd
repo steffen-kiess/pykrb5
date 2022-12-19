@@ -18,3 +18,7 @@ cdef class InitCredsContext:
 
 cdef class Krb5Prompt:
     pass
+
+
+cdef class TicketTimes:
+    cdef pykrb5_ticket_times raw
