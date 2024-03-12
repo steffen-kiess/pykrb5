@@ -40,6 +40,15 @@ class Principal:
     @property
     def name(self) -> typing.Optional[bytes]:
         """The name of the principal."""
+    @property
+    def realm(self) -> bytes:
+        """The realm of the principal."""
+    @property
+    def components(self) -> typing.List[bytes]:
+        """The list of components of the principal."""
+    @property
+    def type(self) -> int:
+        """The name type of the principal."""
 
 def copy_principal(
     context: Context,
@@ -88,6 +97,24 @@ def unparse_name_flags(
         context: Krb5 context.
         principal: The principal to convert from.
         flags: Optional flags to control how the string is generated.
+
+    Returns:
+        bytes: The principal as a byte string.
+    """
+
+def build_principal(
+    context: Context,
+    realm: bytes,
+    components: typing.Iterable[bytes],
+) -> Principal:
+    """Build a principal name.
+
+    Create a Kerberos principal from a realm name and a list of components.
+
+    args:
+        context: Krb5 context.
+        realm: The realm name.
+        components: The list of components.
 
     Returns:
         bytes: The principal as a byte string.
