@@ -6,6 +6,7 @@ import typing
 from krb5._ccache import CCache
 from krb5._context import Context
 from krb5._creds import Creds
+from krb5._creds_opt import GetInitCredsOpt
 from krb5._principal import Principal
 
 def get_validated_creds(
@@ -21,4 +22,24 @@ def get_validated_creds(
         client: Client principal name.
         ccache: The cache to get the existing credentials from.
         in_tkt_service: Server principal string or None.
+    """
+
+def get_etype_info(
+    context: Context,
+    principal: Principal,
+    opt: typing.Optional[GetInitCredsOpt] = None,
+) -> typing.Tuple[int, typing.Optional[bytes], typing.Optional[bytes]]:
+    """Retrieve the enctype, salt and s2kparams for a principal from the KDC.
+
+    Args:
+        context: Krb5 context.
+        principal: Principal to fetch the information for.
+        opt: Options to use (e.g. for FAST armoring).
+
+    Returns:
+        A tuple containing the enctype, the salt and the s2kparams.
+
+        If the KDC provides no etype-info, the returned salt is None.
+
+        If there are no s2kparams in the provided etype-info, s2kparams is None.
     """
