@@ -1,6 +1,7 @@
 # Copyright: (c) 2021 Jordan Borean (@jborean93) <jborean93@gmail.com>
 # MIT License (see LICENSE or https://opensource.org/licenses/MIT)
 
+import enum
 import typing
 
 from krb5._ccache import CCache
@@ -16,6 +17,24 @@ class TicketTimes(typing.NamedTuple):
     endtime: int
     renew_till: int
 
+class TicketFlags(enum.IntFlag):
+    reserved = 1 << 0
+    forwardable = 1 << 1
+    forwarded = 1 << 2
+    proxiable = 1 << 3
+    proxy = 1 << 4
+    may_postdate = 1 << 5
+    postdated = 1 << 6
+    invalid = 1 << 7
+    renewable = 1 << 8
+    initial = 1 << 9
+    pre_authent = 1 << 10
+    hw_authent = 1 << 11
+    transited_policy_checked = 1 << 12
+    ok_as_delegate = 1 << 13
+    enc_pa_rep = 1 << 15
+    anonymous = 1 << 16
+
 class Creds:
     """Kerberos Credentials object.
 
@@ -25,6 +44,9 @@ class Creds:
         context: Krb5 context.
     """
 
+    @property
+    def addr(self) -> int:
+        """The raw krb5_creds pointer address of this credentials."""
     @property
     def client(self) -> Principal:
         """Client's principal identifier."""
@@ -37,9 +59,9 @@ class Creds:
     @property
     def times(self) -> TicketTimes:
         """Lifetime info."""
-    # @property
-    # def ticket_flags(self) -> int:
-    #     """Flags in ticket."""
+    @property
+    def ticket_flags(self) -> TicketFlags:
+        """Flags in ticket."""
     # @property
     # def addresses(self) -> Address:
     #     """Addrs in ticket."""
